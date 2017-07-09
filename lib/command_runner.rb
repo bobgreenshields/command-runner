@@ -51,14 +51,21 @@ module CommandRunner
 			@spy = spy
 			@cmds = []
 			@programmed_responses = {}
+			@responses = []
 		end
 
-		def respond_to(*cmds)
-			response_data = ResponseData.new
-			yield response_data
+		def respond_to(*cmds, response_data: nil)
+			build_data = response_data ? response_data.clone : ResponseData.new
+			yield build_data if block_given?
 			cmd_str = cmds.join(" ").strip
-			response_data.cmd_str = cmd_str
-			@programmed_responses[cmd_str] = response_data
+			build_data.cmd_str = cmd_str
+			@programmed_responses[cmd_str] = build_data
+		end
+
+		def add_response(response_data: nil)
+			build_data = response_data ? response_data.clone : ResponseData.new
+			yield build_data if block_given?
+			@responses.unshift build_data
 		end
 
 		def call(*cmd)
@@ -66,8 +73,8 @@ module CommandRunner
 			if @programmed_responses.key? cmd_str
 				return response_from_data(@programmed_responses[cmd_str])
 			end
-
-			raise "unexpected command called: #{cmd_str}"
+			raise "unexpected command called: #{cmd_str}" if @responses.empty?
+			response_from_data(@responses.pop.tap { |rd| rd.cmd_str = cmd_str })
 		end
 		
 		def response_from_data(response_data)
