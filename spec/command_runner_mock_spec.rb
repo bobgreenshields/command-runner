@@ -69,6 +69,28 @@ describe CommandRunner::Mock do
 				expect(response2.cmd_str).to eql("test2")
 				expect(response2.exit_code).to eql(2)
 			end
+
+			context "when calls are prepared with #respond_to" do
+			let(:mock) do
+				CommandRunner::Mock.new.tap do | m |
+					m.respond_to("respond to", response_data: rd)
+					m.add_response(response_data: rd) { |rd| rd.exit_code = 1 }
+					m.add_response(response_data: rd) { |rd| rd.exit_code = 2 }
+				end
+			end
+				it "ignores those calls" do
+				response1 = mock.call("test1")
+				response2 = mock.call("respond to")
+				response3 = mock.call("respond to")
+				response4 = mock.call("test2")
+				expect(response1.cmd_str).to eql("test1")
+				expect(response1.exit_code).to eql(1)
+				expect(response4.cmd_str).to eql("test2")
+				expect(response4.exit_code).to eql(2)
+				end
+				
+			end
+
 		end
 		
 	end
